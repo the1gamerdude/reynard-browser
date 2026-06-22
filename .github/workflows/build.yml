@@ -28,9 +28,16 @@ jobs:
       - name: Set up Rust
         run: rustup update stable
 
-      - name: Install dependencies (ldid, lld, cbindgen, llvm)
-        # Adding upstream llvm which contains the WebAssembly target architecture
-        run: brew install ldid lld cbindgen llvm
+      - name: Install dependencies (ldid, lld, cbindgen)
+        run: brew install ldid lld cbindgen
+
+      # 2. Add this specific Action to download the official WASI SDK silently
+      - name: Setup WASI SDK
+        id: setup-wasi
+        uses: bytecodealliance/setup-wasi-sdk-action@v1
+        with:
+          version: '32'
+          add-to-path: false # Critical: Prevents overwriting Apple's clang for iOS
 
       - name: Download Gecko and apply patches
         run: |
@@ -41,11 +48,15 @@ jobs:
 
       - name: Build dependencies and the Gecko engine
         run: |
-          # 1. Prioritize the LLVM linker over Apple's default
+          # 3. Prioritize the LLVM linker
           export PATH="$(brew --prefix lld)/bin:$PATH"
           
-          # 2. Tell the Gecko build script to skip the WebAssembly sandboxing check
-          echo "ac_add_options --without-wasm-sandboxed-libraries" >> engine/firefox/.mozconfig
+          # 4. Explicitly point WebAssembly to the downloaded, self-contained WASI SDK
+          export WASM_CC="${{ steps.setup-wasi.outputs.wasi-sdk-path }}/bin/clang"
+          export WASM_CXX="${{ steps.setup-wasi.outputs.wasi-sdk-path }}/bin/clang++"
+          
+          # 5. Remove the --without-wasm hack from the previous run if you appended it
+          sed -i '' '/--without-wasm-sandboxed-libraries/d' engine/firefox/.mozconfig || true
           
           chmod +x ./tools/development/build-idevice.sh
           chmod +x ./tools/development/build-gecko.sh
