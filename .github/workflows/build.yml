@@ -28,9 +28,9 @@ jobs:
       - name: Set up Rust
         run: rustup update stable
 
-      - name: Install dependencies (ldid, lld, cbindgen)
-        # Adding cbindgen here installs the pre-compiled binary instantly
-        run: brew install ldid lld cbindgen
+      - name: Install dependencies (ldid, lld, cbindgen, llvm)
+        # Adding upstream llvm which contains the WebAssembly target architecture
+        run: brew install ldid lld cbindgen llvm
 
       - name: Download Gecko and apply patches
         run: |
@@ -41,8 +41,13 @@ jobs:
 
       - name: Build dependencies and the Gecko engine
         run: |
-          # Force the runner to prioritize the LLVM linker over Apple's default
+          # 1. Prioritize the LLVM linker
           export PATH="$(brew --prefix lld)/bin:$PATH"
+          
+          # 2. Direct the build system to use Homebrew's compiler strictly for WASM tasks
+          # (We avoid changing the main PATH to ensure Xcode handles the iOS code)
+          export WASM_CC="$(brew --prefix llvm)/bin/clang"
+          export WASM_CXX="$(brew --prefix llvm)/bin/clang++"
           
           chmod +x ./tools/development/build-idevice.sh
           chmod +x ./tools/development/build-gecko.sh
