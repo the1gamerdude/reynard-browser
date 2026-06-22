@@ -16,7 +16,7 @@ jobs:
           submodules: recursive
 
       - name: Set up Xcode 26.5
-        uses: maxim-lobanov/setup-xcode@main
+        uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: '26.5'
 
@@ -34,7 +34,7 @@ jobs:
       # 2. Add this specific Action to download the official WASI SDK silently
       - name: Setup WASI SDK
         id: setup-wasi
-        uses: bytecodealliance/setup-wasi-sdk-action@v1
+        uses: bytecodealliance/setup-wasi-sdk-action@main
         with:
           version: '32'
           add-to-path: false # Critical: Prevents overwriting Apple's clang for iOS
