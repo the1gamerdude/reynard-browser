@@ -1,0 +1,88 @@
+name: Build Reynard TrollStore TIPA
+
+# Triggers the build manually from the Actions tab or automatically on push
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: 
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Set up Rust
+        run: rustup update stable
+
+      - name: Install ldid
+        run: brew install ldid
+
+      - name: Download Gecko and apply patches
+        run: |
+          chmod +x ./tools/development/update-gecko.sh
+          chmod +x ./tools/development/apply-patches.sh
+          ./tools/development/update-gecko.sh
+          ./tools/development/apply-patches.sh
+
+      - name: Build dependencies and the Gecko engine
+        run: |
+          chmod +x ./tools/development/build-idevice.sh
+          chmod +x ./tools/development/build-gecko.sh
+          ./tools/development/build-idevice.sh
+          ./tools/development/build-gecko.sh
+
+      - name: Build Xcode Project (Unsigned)
+        run: |
+          xcodebuild clean build \
+            -project Reynard.xcodeproj \
+            -scheme Reynard \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CONFIGURATION_BUILD_DIR=${PWD}/build_output
+
+      - name: Inject Entitlements & Package TIPA
+        run: |
+          APP_DIR="build_output/Reynard.app"
+          
+          # 1. Dump any existing entitlements, or create a blank plist if none exist
+          ldid -e "$APP_DIR" > entitlements.plist
+          if ! grep -q "<?xml" entitlements.plist; then
+            cat << 'EOF' > entitlements.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict></dict>
+          </plist>
+          EOF
+          fi
+
+          # 2. Inject the JIT Entitlements required by TrollStore
+          /usr/libexec/PlistBuddy -c "Add :get-task-allow bool true" entitlements.plist || /usr/libexec/PlistBuddy -c "Set :get-task-allow true" entitlements.plist
+          /usr/libexec/PlistBuddy -c "Add :dynamic-codesigning bool true" entitlements.plist || /usr/libexec/PlistBuddy -c "Set :dynamic-codesigning true" entitlements.plist
+
+          # 3. Fake-sign the app with ldid
+          ldid -Sentitlements.plist "$APP_DIR"
+
+          # 4. Package as .tipa
+          mkdir Payload
+          cp -R "$APP_DIR" Payload/
+          zip -r Reynard.tipa Payload
+          
+      - name: Upload TIPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Reynard-TrollStore
+          path: Reynard.tipa
