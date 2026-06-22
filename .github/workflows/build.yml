@@ -30,6 +30,8 @@ jobs:
       - name: Set up Rust
         run: rustup update stable
 
+      # ... [The rest of your steps remain exactly the same] ...
+
       - name: Install ldid
         run: brew install ldid
 
