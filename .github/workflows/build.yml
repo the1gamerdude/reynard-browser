@@ -41,13 +41,11 @@ jobs:
 
       - name: Build dependencies and the Gecko engine
         run: |
-          # 1. Prioritize the LLVM linker
+          # 1. Prioritize the LLVM linker over Apple's default
           export PATH="$(brew --prefix lld)/bin:$PATH"
           
-          # 2. Direct the build system to use Homebrew's compiler strictly for WASM tasks
-          # (We avoid changing the main PATH to ensure Xcode handles the iOS code)
-          export WASM_CC="$(brew --prefix llvm)/bin/clang"
-          export WASM_CXX="$(brew --prefix llvm)/bin/clang++"
+          # 2. Tell the Gecko build script to skip the WebAssembly sandboxing check
+          echo "ac_add_options --without-wasm-sandboxed-libraries" >> engine/firefox/.mozconfig
           
           chmod +x ./tools/development/build-idevice.sh
           chmod +x ./tools/development/build-gecko.sh
