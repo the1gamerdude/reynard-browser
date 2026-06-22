@@ -28,8 +28,9 @@ jobs:
       - name: Set up Rust
         run: rustup update stable
 
-      - name: Install dependencies (ldid, lld)
-        run: brew install ldid lld
+      - name: Install dependencies (ldid, lld, cbindgen)
+        # Adding cbindgen here installs the pre-compiled binary instantly
+        run: brew install ldid lld cbindgen
 
       - name: Download Gecko and apply patches
         run: |
@@ -47,6 +48,7 @@ jobs:
           chmod +x ./tools/development/build-gecko.sh
           ./tools/development/build-idevice.sh
           ./tools/development/build-gecko.sh
+          
       - name: Build Xcode Project (Unsigned)
         run: |
           xcodebuild clean build \
