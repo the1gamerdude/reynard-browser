@@ -56,6 +56,23 @@ jobs:
           ./tools/development/build-idevice.sh
           ./tools/development/build-gecko.sh
 
+      - name: Generate Dummy Apple Certificate
+        run: |
+          # Create and unlock a temporary keychain for the runner
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          security create-keychain -p "" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "" $KEYCHAIN_PATH
+          security list-keychains -d user -s $KEYCHAIN_PATH
+          
+          # Generate a self-signed certificate named exactly what Xcode is looking for
+          openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/CN=Apple Development"
+          openssl pkcs12 -export -out cert.p12 -inkey key.pem -in cert.pem -passout pass:
+          
+          # Import the dummy certificate into the keychain and grant codesign access
+          security import cert.p12 -k $KEYCHAIN_PATH -P "" -A
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" $KEYCHAIN_PATH
+
       - name: Compile Xcode Project (Native Script)
         run: |
           chmod +x ./tools/release/build-app.sh
