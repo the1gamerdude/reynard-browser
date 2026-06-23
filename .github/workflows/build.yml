@@ -59,6 +59,16 @@ jobs:
       - name: Compile Xcode Project (Native Script)
         run: |
           chmod +x ./tools/release/build-app.sh
+          
+          # Force Xcode to accept ad-hoc signing overrides on the cloud server
+          echo "" >> browser/Configuration/Reynard.xcconfig
+          echo "CODE_SIGN_IDENTITY = -" >> browser/Configuration/Reynard.xcconfig
+          echo "CODE_SIGNING_REQUIRED = NO" >> browser/Configuration/Reynard.xcconfig
+          echo "CODE_SIGNING_ALLOWED = YES" >> browser/Configuration/Reynard.xcconfig
+          echo "CODE_SIGN_STYLE = Manual" >> browser/Configuration/Reynard.xcconfig
+          echo "PROVISIONING_PROFILE_SPECIFIER = " >> browser/Configuration/Reynard.xcconfig
+          echo "DEVELOPMENT_TEAM = " >> browser/Configuration/Reynard.xcconfig
+          
           ./tools/release/build-app.sh
 
       - name: Package TrollStore TIPA (Native Script)
