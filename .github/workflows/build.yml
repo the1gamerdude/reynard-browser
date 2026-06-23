@@ -60,11 +60,11 @@ jobs:
         run: |
           chmod +x ./tools/release/build-app.sh
           
-          # Force Xcode to accept ad-hoc signing overrides on the cloud server
+          # Completely disable code signing inside Xcode to bypass SDK restrictions
           echo "" >> browser/Configuration/Reynard.xcconfig
-          echo "CODE_SIGN_IDENTITY = -" >> browser/Configuration/Reynard.xcconfig
+          echo "CODE_SIGNING_ALLOWED = NO" >> browser/Configuration/Reynard.xcconfig
           echo "CODE_SIGNING_REQUIRED = NO" >> browser/Configuration/Reynard.xcconfig
-          echo "CODE_SIGNING_ALLOWED = YES" >> browser/Configuration/Reynard.xcconfig
+          echo "CODE_SIGN_IDENTITY = " >> browser/Configuration/Reynard.xcconfig
           echo "CODE_SIGN_STYLE = Manual" >> browser/Configuration/Reynard.xcconfig
           echo "PROVISIONING_PROFILE_SPECIFIER = " >> browser/Configuration/Reynard.xcconfig
           echo "DEVELOPMENT_TEAM = " >> browser/Configuration/Reynard.xcconfig
